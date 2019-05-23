@@ -1,0 +1,42 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: gitlab-runner
+  namespace: gitlab-runner-ns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: gitlab-runner
+  template:
+    metadata:
+      labels:
+        name: gitlab-runner
+    spec:
+      containers:
+        - name: gitlab-runner
+          image: gitlab/gitlab-runner:alpine-v9.3.0
+          command: ["/bin/bash", "/scripts/entrypoint"]
+          env:
+            - name: GITLAB_URL
+              value: "https://source.coderefinery.org/"
+            - name: REGISTRATION_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: gitlab-runner-secret
+                  key: runner-registration-token
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: config
+              mountPath: /scripts
+            - name: cacerts
+              mountPath: /etc/gitlab-runner/certs
+              readOnly: true
+      restartPolicy: Always
+      volumes:
+        - name: config
+          configMap:
+            name: gitlab-runner-cm
+        - name: cacerts
+          hostPath:
+            path: /var/mozilla
